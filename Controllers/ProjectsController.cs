@@ -18,14 +18,44 @@ namespace SibersTest.Controllers
 
         // GET: api/projects
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Project>>> GetProjects()
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<Project>>> GetProjects(
+    DateTime? startDateFrom, DateTime? startDateTo,
+    int? priorityFrom, int? priorityTo,
+    string? orderBy, bool? descending)
         {
-            return await _context.Projects
+            var query = _context.Projects
                 .Include(p => p.CustomerCompany)
                 .Include(p => p.ExecutorCompany)
                 .Include(p => p.ProjectManager)
                 .Include(p => p.Executors)
-                .ToListAsync();
+                .AsQueryable();
+
+            // Фильтрация по дате начала
+            if (startDateFrom.HasValue)
+                query = query.Where(p => p.StartDate >= startDateFrom.Value);
+            if (startDateTo.HasValue)
+                query = query.Where(p => p.StartDate <= startDateTo.Value);
+
+            // Фильтрация по приоритету
+            if (priorityFrom.HasValue)
+                query = query.Where(p => p.Priority >= priorityFrom.Value);
+            if (priorityTo.HasValue)
+                query = query.Where(p => p.Priority <= priorityTo.Value);
+
+            // Сортировка
+            if (!string.IsNullOrEmpty(orderBy))
+            {
+                query = orderBy.ToLower() switch
+                {
+                    "name" => descending == true ? query.OrderByDescending(p => p.Name) : query.OrderBy(p => p.Name),
+                    "startdate" => descending == true ? query.OrderByDescending(p => p.StartDate) : query.OrderBy(p => p.StartDate),
+                    "priority" => descending == true ? query.OrderByDescending(p => p.Priority) : query.OrderBy(p => p.Priority),
+                    _ => query
+                };
+            }
+
+            return await query.ToListAsync();
         }
 
         // GET: api/projects/5
