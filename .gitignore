@@ -1,0 +1,20 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.dll
+*.exe
+*.pdb
+*.log
+*.sqlite
+Migrations/
+.DS_Store
+*.tmp
+*.nupkg
+*.pidb
+*.pidb3
+*.pidb*
+launchSettings.json
+appsettings.Development.json
