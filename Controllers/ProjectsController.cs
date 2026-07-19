@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SibersTest.Data;
 using SibersTest.Models;
@@ -7,6 +8,7 @@ namespace SibersTest.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Roles = "Admin, ProjectManager, Employee")]
     public class ProjectsController : ControllerBase
     {
         private readonly SibersDbContext _context;
@@ -16,34 +18,29 @@ namespace SibersTest.Controllers
             _context = context;
         }
 
-        // GET: api/projects
+        // GET: api/projects (Все роли могут просматривать)
         [HttpGet]
-        [HttpGet]
+        [Authorize(Roles = "Admin, ProjectManager, Employee")]
         public async Task<ActionResult<IEnumerable<Project>>> GetProjects(
-    DateTime? startDateFrom, DateTime? startDateTo,
-    int? priorityFrom, int? priorityTo,
-    string? orderBy, bool? descending)
+            DateTime? startDateFrom, DateTime? startDateTo,
+            int? priorityFrom, int? priorityTo,
+            string? orderBy, bool? descending)
         {
             var query = _context.Projects
                 .Include(p => p.CustomerCompany)
                 .Include(p => p.ExecutorCompany)
                 .Include(p => p.ProjectManager)
-                .Include(p => p.Executors)
                 .AsQueryable();
 
-            // Фильтрация по дате начала
             if (startDateFrom.HasValue)
                 query = query.Where(p => p.StartDate >= startDateFrom.Value);
             if (startDateTo.HasValue)
                 query = query.Where(p => p.StartDate <= startDateTo.Value);
-
-            // Фильтрация по приоритету
             if (priorityFrom.HasValue)
                 query = query.Where(p => p.Priority >= priorityFrom.Value);
             if (priorityTo.HasValue)
                 query = query.Where(p => p.Priority <= priorityTo.Value);
 
-            // Сортировка
             if (!string.IsNullOrEmpty(orderBy))
             {
                 query = orderBy.ToLower() switch
@@ -60,13 +57,13 @@ namespace SibersTest.Controllers
 
         // GET: api/projects/5
         [HttpGet("{id}")]
+        [Authorize(Roles = "Admin, ProjectManager, Employee")]
         public async Task<ActionResult<Project>> GetProject(int id)
         {
             var project = await _context.Projects
                 .Include(p => p.CustomerCompany)
                 .Include(p => p.ExecutorCompany)
                 .Include(p => p.ProjectManager)
-                .Include(p => p.Executors)
                 .FirstOrDefaultAsync(p => p.Id == id);
 
             if (project == null)
@@ -77,24 +74,43 @@ namespace SibersTest.Controllers
 
         // POST: api/projects
         [HttpPost]
+        [Authorize(Roles = "Admin, ProjectManager")]
         public async Task<ActionResult<Project>> PostProject(Project project)
         {
-            // Проверяем, что руководитель существует (если указан)
             if (project.ProjectManagerId.HasValue)
             {
                 var manager = await _context.Workers.FindAsync(project.ProjectManagerId.Value);
                 if (manager == null)
-                    return BadRequest("Project manager not found");
+                    return BadRequest("Руководитель не найден");
             }
+
+            if (project.ExecutorIds != null && project.ExecutorIds.Any())
+            {
+                var executors = await _context.Workers
+                    .Where(w => project.ExecutorIds.Contains(w.Id))
+                    .ToListAsync();
+                project.Executors = executors;
+            }
+
+            project.ProjectManager = null;
+            project.CustomerCompany = null;
+            project.ExecutorCompany = null;
 
             _context.Projects.Add(project);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetProject), new { id = project.Id }, project);
+            var createdProject = await _context.Projects
+                .Include(p => p.CustomerCompany)
+                .Include(p => p.ExecutorCompany)
+                .Include(p => p.ProjectManager)
+                .FirstOrDefaultAsync(p => p.Id == project.Id);
+
+            return CreatedAtAction(nameof(GetProject), new { id = project.Id }, createdProject);
         }
 
         // PUT: api/projects/5
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin, ProjectManager")]
         public async Task<IActionResult> PutProject(int id, Project project)
         {
             if (id != project.Id)
@@ -108,6 +124,7 @@ namespace SibersTest.Controllers
 
         // DELETE: api/projects/5
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteProject(int id)
         {
             var project = await _context.Projects.FindAsync(id);

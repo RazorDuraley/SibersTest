@@ -1,24 +1,29 @@
-﻿namespace SibersTest.Models
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace SibersTest.Models;
+
+public class Project
 {
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public DateTime StartDate { get; set; }
+    public DateTime EndDate { get; set; }
+    public int Priority { get; set; }
 
-    public class Project
-    {
-        public string Name { get; set; }
-        public int Id { get; set; }
-        public DateTime StartDate { get; set; }
-        public DateTime EndDate { get; set; }
-        public int Priority { get; set; }
+    // Связь с компаниями
+    public int CustomerCompanyId { get; set; }
+    public Company? CustomerCompany { get; set; }
 
+    public int ExecutorCompanyId { get; set; }
+    public Company? ExecutorCompany { get; set; }
 
-        public int? CustomerCompanyId { get; set; }
-        public CustomerCompany? CustomerCompany { get; set; } = null!;
+    public List<ProjectFile> Files { get; set; } = new();
+    public List<int> ExecutorIds { get; set; } = new();
 
-        public int? ExecutorCompanyId { get; set; }
-        public ExecutorCompany? ExecutorCompany { get; set; } = null!;
+    // Руководитель
+    public int? ProjectManagerId { get; set; }
+    public Worker? ProjectManager { get; set; }
 
-        public int? ProjectManagerId { get; set; }
-        public Worker? ProjectManager { get; set; }
-
-        public List<Worker> Executors { get; set; } = new();
-    }
+    // Исполнители
+    public List<Worker> Executors { get; set; } = new();
 }

@@ -1,10 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import CreateProject from './CreateProject';
+import ProjectEditModal from './ProjectEditModal';
+import TaskManager from './TaskManager';
+import ProjectFilters from './ProjectFilters';
+import ProjectList from './ProjectList';
 
 const Projects = () => {
     const [projects, setProjects] = useState([]);
     const [editingProject, setEditingProject] = useState(null);
+    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [workers, setWorkers] = useState([]);
+    const [companies, setCompanies] = useState([]);
+    const [tasksModalOpen, setTasksModalOpen] = useState(false);
+    const [selectedProject, setSelectedProject] = useState(null);
     const [filters, setFilters] = useState({
         startDateFrom: '',
         startDateTo: '',
@@ -14,14 +23,29 @@ const Projects = () => {
         descending: false
     });
 
-    // Загрузка проектов с параметрами
+    const fetchWorkers = () => {
+        axios.get('/api/workers')
+            .then(response => setWorkers(response.data))
+            .catch(error => console.error(error));
+    };
+
+    const fetchCompanies = () => {
+        axios.get('/api/companies')
+            .then(response => setCompanies(response.data))
+            .catch(error => console.error(error));
+    };
+
+    useEffect(() => {
+        fetchWorkers();
+        fetchCompanies();
+    }, []);
+
     const fetchProjects = (params = '') => {
         axios.get(`/api/projects${params}`)
             .then(response => setProjects(response.data))
             .catch(error => console.error(error));
     };
 
-    // Применение фильтров
     const applyFilters = () => {
         const params = new URLSearchParams();
         if (filters.startDateFrom) params.append('startDateFrom', filters.startDateFrom);
@@ -34,17 +58,14 @@ const Projects = () => {
         fetchProjects(`?${params.toString()}`);
     };
 
-    // Автообновление при изменении фильтров
     useEffect(() => {
         applyFilters();
     }, [filters]);
 
-    // Первоначальная загрузка
     useEffect(() => {
         fetchProjects();
     }, []);
 
-    // Сброс фильтров
     const resetFilters = () => {
         setFilters({
             startDateFrom: '',
@@ -56,7 +77,6 @@ const Projects = () => {
         });
     };
 
-    // Удаление проекта
     const deleteProject = (id) => {
         if (window.confirm('Точно удалить?')) {
             axios.delete(`/api/projects/${id}`)
@@ -65,97 +85,65 @@ const Projects = () => {
         }
     };
 
-    // Сохранение изменений после редактирования
-    const saveEdit = () => {
-        axios.put(`/api/projects/${editingProject.id}`, editingProject)
-            .then(() => {
-                setEditingProject(null);
-                fetchProjects();
-            })
-            .catch(error => console.error(error));
+    const openTasksModal = (project) => {
+        setSelectedProject(project);
+        setTasksModalOpen(true);
     };
 
     return (
-        <div>
-            <h1>Список проектов</h1>
+        <>
+            <div>
+                <h1>Список проектов</h1>
 
-            {/* Блок фильтров */}
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
-                <input
-                    type="date"
-                    value={filters.startDateFrom}
-                    onChange={(e) => setFilters({ ...filters, startDateFrom: e.target.value })}
-                    placeholder="Дата от"
-                />
-                <input
-                    type="date"
-                    value={filters.startDateTo}
-                    onChange={(e) => setFilters({ ...filters, startDateTo: e.target.value })}
-                    placeholder="Дата до"
-                />
-                <input
-                    type="number"
-                    value={filters.priorityFrom}
-                    onChange={(e) => setFilters({ ...filters, priorityFrom: e.target.value })}
-                    placeholder="Приоритет от"
-                />
-                <input
-                    type="number"
-                    value={filters.priorityTo}
-                    onChange={(e) => setFilters({ ...filters, priorityTo: e.target.value })}
-                    placeholder="Приоритет до"
-                />
-                <select
-                    value={filters.orderBy}
-                    onChange={(e) => setFilters({ ...filters, orderBy: e.target.value })}
-                >
-                    <option value="name">По названию</option>
-                    <option value="startdate">По дате начала</option>
-                    <option value="priority">По приоритету</option>
-                </select>
-                <label>
-                    <input
-                        type="checkbox"
-                        checked={filters.descending}
-                        onChange={(e) => setFilters({ ...filters, descending: e.target.checked })}
-                    />
-                    По убыванию
-                </label>
-                <button onClick={resetFilters}>Сбросить</button>
-            </div>
+                <button onClick={() => setShowCreateModal(true)}>Создать проект</button>
 
-            <CreateProject onProjectCreated={fetchProjects} />
-
-            <ul>
-                {projects.map(project => (
-                    <li key={project.id}>
-                        {project.name} — Приоритет: {project.priority}
-                        <div>
-                            <button onClick={() => setEditingProject(project)}>Редактировать</button>
-                            <button onClick={() => deleteProject(project.id)}>Удалить</button>
+                {showCreateModal && (
+                    <div className="modal-overlay">
+                        <div className="modal-content">
+                            <button className="modal-close" onClick={() => setShowCreateModal(false)}>×</button>
+                            <CreateProject
+                                onProjectCreated={() => {
+                                    setShowCreateModal(false);
+                                    fetchProjects();
+                                }}
+                                workers={workers}
+                            />
                         </div>
-                    </li>
-                ))}
-            </ul>
+                    </div>
+                )}
 
-            {editingProject && (
-                <div className="modal">
-                    <h2>Редактировать проект</h2>
-                    <input
-                        type="text"
-                        value={editingProject.name}
-                        onChange={(e) => setEditingProject({ ...editingProject, name: e.target.value })}
+                <ProjectFilters
+                    filters={filters}
+                    setFilters={setFilters}
+                    resetFilters={resetFilters}
+                />
+
+                <ProjectList
+                    projects={projects}
+                    onEdit={setEditingProject}
+                    onDelete={deleteProject}
+                    onTasks={openTasksModal}
+                />
+
+                {editingProject && (
+                    <ProjectEditModal
+                        project={editingProject}
+                        workers={workers}
+                        companies={companies}
+                        onClose={() => setEditingProject(null)}
+                        onSave={fetchProjects}
                     />
-                    <input
-                        type="number"
-                        value={editingProject.priority}
-                        onChange={(e) => setEditingProject({ ...editingProject, priority: parseInt(e.target.value) })}
+                )}
+
+                {tasksModalOpen && selectedProject && (
+                    <TaskManager
+                        project={selectedProject}
+                        workers={workers}
+                        onClose={() => setTasksModalOpen(false)}
                     />
-                    <button onClick={saveEdit}>Сохранить</button>
-                    <button onClick={() => setEditingProject(null)}>Отмена</button>
-                </div>
-            )}
-        </div>
+                )}
+            </div>
+        </>
     );
 };
 

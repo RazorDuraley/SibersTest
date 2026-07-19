@@ -1,64 +1,164 @@
+/* Общий фон и шрифт */
+body {
+    margin: 0;
+    padding: 0;
+    background: #f4f7fc;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
 .App {
-  text-align: center;
-}
-
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
-}
-
-.App-link {
-  color: #61dafb;
-}
-
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-.modal {
-    position: fixed;
-    top: 20%;
-    left: 50%;
-    transform: translateX(-50%);
-    background: white;
+    max-width: 1200px;
+    margin: 0 auto;
     padding: 20px;
-    border: 1px solid #ccc;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+/* Карточки */
+.card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+/* Кнопки */
+button {
+    background: #eef2f7;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: 0.2s;
+}
+
+    button:hover {
+        background: #dce3ec;
+    }
+
+    button.primary {
+        background: #2a6df4;
+        color: white;
+    }
+
+        button.primary:hover {
+            background: #1a56c4;
+        }
+
+    button.danger {
+        background: #f44336;
+        color: white;
+    }
+
+        button.danger:hover {
+            background: #d32f2f;
+        }
+
+/* Модалка */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    justify-content: center;
+    align-items: center;
     z-index: 1000;
 }
 
+.modal-content {
+    background: white;
+    padding: 30px;
+    border-radius: 16px;
+    max-width: 700px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.modal-close {
+    position: absolute;
+    top: 12px;
+    right: 18px;
+    font-size: 28px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #888;
+}
+
+    .modal-close:hover {
+        color: #333;
+    }
+
+/* Поля ввода */
+input, select {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 12px;
+    border: 1px solid #d0d7de;
+    border-radius: 8px;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+    input:focus, select:focus {
+        outline: none;
+        border-color: #2a6df4;
+        box-shadow: 0 0 0 3px rgba(42, 109, 244, 0.15);
+    }
+
+/* Список */
 ul {
     list-style: none;
     padding: 0;
 }
 
 li {
-    margin: 10px 0;
-    padding: 10px;
-    border: 1px solid #eee;
-    border-radius: 4px;
+    background: white;
+    padding: 12px 16px;
+    margin-bottom: 8px;
+    border-radius: 8px;
+    border: 1px solid #e9edf2;
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
+
+/* Фильтры */
+.filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+    background: white;
+    padding: 16px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+/* Навигация */
+nav {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    background: white;
+    padding: 12px 24px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    margin-bottom: 24px;
+}
+
+    nav a {
+        text-decoration: none;
+        color: #1f2a3a;
+        font-weight: 500;
+    }
+
+        nav a:hover {
+            color: #2a6df4;
+        }

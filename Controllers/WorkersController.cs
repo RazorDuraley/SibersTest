@@ -1,81 +1,88 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SibersTest.Data;
 using SibersTest.Models;
 
-namespace SibersTest.Controllers
+namespace SibersTest.Controllers;
+
+[Route("api/[controller]")]
+[ApiController]
+[Authorize(Roles = "Admin, ProjectManager")]
+public class WorkersController : ControllerBase
 {
-    [Route("api/[controller]")]
-    [ApiController]
-    public class WorkersController : ControllerBase
+    private readonly SibersDbContext _context;
+
+    public WorkersController(SibersDbContext context)
     {
-        private readonly SibersDbContext _context;
+        _context = context;
+    }
 
-        public WorkersController(SibersDbContext context)
-        {
-            _context = context;
-        }
+    [HttpGet]
+    [Authorize(Roles = "Admin, ProjectManager, Employee")]
+    public async Task<ActionResult<IEnumerable<Worker>>> GetWorkers()
+    {
+        return await _context.Workers.ToListAsync();
+    }
 
-        // GET: api/workers
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<Worker>>> GetWorkers()
-        {
-            return await _context.Workers
-                .Include(w => w.ManagedProjects)
-                .Include(w => w.Projects)
-                .ToListAsync();
-        }
+    [HttpGet("search")]
+    public async Task<ActionResult<IEnumerable<Worker>>> SearchWorkers([FromQuery] string query)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+            return await _context.Workers.Take(10).ToListAsync();
 
-        // GET: api/workers/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Worker>> GetWorker(int id)
-        {
-            var worker = await _context.Workers
-                .Include(w => w.ManagedProjects)
-                .Include(w => w.Projects)
-                .FirstOrDefaultAsync(w => w.Id == id);
+        return await _context.Workers
+            .Where(w => w.FirstName.Contains(query) ||
+                        w.LastName.Contains(query) ||
+                        w.Email.Contains(query))
+            .Take(10)
+            .ToListAsync();
+    }
 
-            if (worker == null)
-                return NotFound();
+    [HttpGet("{id}")]
+    [Authorize(Roles = "Admin, ProjectManager, Employee")]
+    public async Task<ActionResult<Worker>> GetWorker(int id)
+    {
+        var worker = await _context.Workers.FindAsync(id);
+        if (worker == null) return NotFound();
+        return worker;
+    }
 
-            return worker;
-        }
+    [HttpPost]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<Worker>> PostWorker(Worker worker)
+    {
+        _context.Workers.Add(worker);
+        await _context.SaveChangesAsync();
+        return CreatedAtAction(nameof(GetWorker), new { id = worker.Id }, worker);
+    }
 
-        // POST: api/workers
-        [HttpPost]
-        public async Task<ActionResult<Worker>> PostWorker(Worker worker)
-        {
-            _context.Workers.Add(worker);
-            await _context.SaveChangesAsync();
+    [HttpPut("{id}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> PutWorker(int id, Worker worker)
+    {
+        if (id != worker.Id) return BadRequest();
 
-            return CreatedAtAction(nameof(GetWorker), new { id = worker.Id }, worker);
-        }
+        var existing = await _context.Workers.FindAsync(id);
+        if (existing == null) return NotFound();
 
-        // PUT: api/workers/5
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutWorker(int id, Worker worker)
-        {
-            if (id != worker.Id)
-                return BadRequest();
+        existing.FirstName = worker.FirstName;
+        existing.LastName = worker.LastName;
+        existing.Patronymic = worker.Patronymic;
+        existing.Email = worker.Email;
 
-            _context.Entry(worker).State = EntityState.Modified;
-            await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync();
+        return NoContent();
+    }
 
-            return NoContent();
-        }
-
-        // DELETE: api/workers/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteWorker(int id)
-        {
-            var worker = await _context.Workers.FindAsync(id);
-            if (worker == null)
-                return NotFound();
-
-            _context.Workers.Remove(worker);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
-        }
+    [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> DeleteWorker(int id)
+    {
+        var worker = await _context.Workers.FindAsync(id);
+        if (worker == null) return NotFound();
+        _context.Workers.Remove(worker);
+        await _context.SaveChangesAsync();
+        return NoContent();
     }
 }
